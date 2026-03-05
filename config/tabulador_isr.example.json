@@ -1,0 +1,15 @@
+{
+  "periods": {
+    "2026": {
+      "rows": [
+        {
+          "lower_limit": 0.01,
+          "upper_limit": 1000.0,
+          "fixed_fee": 0.0,
+          "rate": 0.0192
+        }
+      ],
+      "updated_at": "2026-01-01T00:00:00+00:00"
+    }
+  }
+}

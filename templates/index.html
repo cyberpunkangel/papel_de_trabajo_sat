@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Declaracion Anual SAT</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1><span class="icon">&#127963;&#65039;</span>Sistema de Declaracion Anual</h1>
+        <p class="subtitle">Servicio de Administracion Tributaria (SAT)</p>
+        <p class="description">Descarga y procesa tus documentos fiscales de forma automatica</p>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Cards Grid -->
+        <div class="cards-grid">
+            <!-- Card 1: Configurar FIEL -->
+            <div class="card">
+                <div class="card-title">&#128274; Configurar FIEL</div>
+                <p class="card-description">
+                    Configura tus certificados digitales para acceder al SAT
+                </p>
+                <div class="card-separator"></div>
+                <button class="btn btn-primary" onclick="openModal('fiel-modal')">
+                    &#9654; Configurar Certificados
+                </button>
+            </div>
+
+            <!-- Card 2: Descargar del SAT -->
+            <div class="card">
+                <div class="card-title">&#128229; Descargar del SAT</div>
+                <p class="card-description">
+                    Descarga automática de CFDIs, nóminas y retenciones
+                </p>
+                <div class="card-separator"></div>
+                <button class="btn btn-success" onclick="openModal('download-modal')">
+                    &#9654; Iniciar Descarga
+                </button>
+                     <a id="ver-descargas-btn" class="btn btn-secondary btn-disabled" style="margin-top: 10px;"
+                         href="/api/downloads/browse"
+                         aria-disabled="true" tabindex="-1" title="Aún no hay descargas disponibles">
+                    &#128194; Ver archivos descargados
+                </a>
+            </div>
+
+            <!-- Card 3: Datos del Contribuyente -->
+            <div class="card">
+                <div class="card-title">&#128100; Datos del Contribuyente</div>
+                <p class="card-description">
+                    Captura o actualiza tus datos fiscales personales
+                </p>
+                <div class="card-separator"></div>
+                <button class="btn btn-info" onclick="openModal('contribuyente-modal')">
+                    &#9654; Configurar Datos
+                </button>
+            </div>
+
+            <!-- Card 4: Procesar Documentos -->
+            <div class="card">
+                <div class="card-title">&#128202; Procesar y Generar</div>
+                <p class="card-description">
+                    Procesa tus documentos y genera el papel de trabajo en Excel
+                </p>
+                <div class="card-separator"></div>
+                <button class="btn btn-success" onclick="openModal('report-modal')">
+                    &#9654; Generar Papel de Trabajo
+                </button>
+                     <a id="ver-reporte-btn" class="btn btn-secondary btn-disabled" style="margin-top: 10px;"
+                         href="#">
+                    &#128200; Ver Papeles de trabajo generados
+                </a>
+            </div>
+
+                <!-- Card 5: Preparar paquetes SAT -->
+                <div class="card">
+                    <div class="card-title">&#128230; Preparar Paquetes SAT</div>
+                    <p class="card-description">
+                        Crea ZIPs menores a 4 MB por tipo de XML para cargar en el SAT
+                    </p>
+                    <div class="card-separator"></div>
+                    <button class="btn btn-success" onclick="openModal('packages-modal')">
+                        &#9654; Preparar Paquetes ZIP
+                    </button>
+                </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-separator"></div>
+        <p class="footer-info">Version 2.0.0 | &copy; 2025 | Sistema de Procesamiento Fiscal</p>
+        <button class="btn-link" onclick="showHelp()">&#128214; Ayuda</button>
+    </footer>
+
+    <!-- Modal: Configurar FIEL -->
+    <div id="fiel-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('fiel-modal')">&times;</span>
+                <h2>&#128274; Configuracion de FIEL</h2>
+                <p>Configura tus certificados digitales del SAT</p>
+            </div>
+
+            <form onsubmit="saveFielConfig(event)">
+                <div class="modal-body">
+                    <!-- Informacion -->
+                    <div class="info-box">
+                        <p><strong>&#8505;&#65039; Informacion</strong></p>
+                        <p>Para descargar documentos del SAT necesitas:</p>
+                        <p>&bull; Certificado (.cer) - Archivo publico de tu FIEL</p>
+                        <p>&bull; Llave privada (.key) - Archivo de llave cifrada</p>
+                        <p>&bull; Contrasena - La contrasena de tu llave privada</p>
+                        <p><strong>&#9888;&#65039; Por seguridad, la contrasena NO se guarda en disco.</strong></p>
+                    </div>
+
+                    <!-- Formulario -->
+                    <div class="form-group">
+                        <label for="cert-file">Certificado (.cer):</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="cert-file" accept=".cer" onchange="handleFileSelect('cert-file', 'cert-name')">
+                            <label for="cert-file" class="file-input-label">
+                                &#128193; Seleccionar certificado...
+                            </label>
+                        </div>
+                        <div id="cert-name" class="file-name">Ningun archivo seleccionado</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="key-file">Llave Privada (.key):</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="key-file" accept=".key" onchange="handleFileSelect('key-file', 'key-name')">
+                            <label for="key-file" class="file-input-label">
+                                &#128193; Seleccionar llave privada...
+                            </label>
+                        </div>
+                        <div id="key-name" class="file-name">Ningun archivo seleccionado</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Contrasena:</label>
+                        <input type="password" id="password" placeholder="Contrasena de la llave privada">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="show-password" onchange="togglePassword('password')">
+                            <label for="show-password">Mostrar contrasena</label>
+                        </div>
+                    </div>
+
+                    <div id="fiel-alert-container"></div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-info" onclick="closeModal('fiel-modal')">Cancelar</button>
+                    <button type="submit" class="btn btn-success">&#128190; Guardar y Validar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Descargar del SAT -->
+    <div id="download-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('download-modal')">&times;</span>
+                <h2>&#128229; Descarga Automatica del SAT</h2>
+                <p>Descarga masiva de CFDIs, nominas y retenciones</p>
+            </div>
+
+            <form onsubmit="iniciarDescarga(event)">
+                <div class="modal-body">
+                    <!-- Informacion de FIEL configurada -->
+                    <div id="fiel-info-box" class="info-box" style="display: none;">
+                        <p><strong>&#9989; FIEL Configurada</strong></p>
+                        <p id="fiel-rfc-display"></p>
+                        <p id="fiel-nombre-display"></p>
+                    </div>
+
+                    <!-- Advertencia sobre límites del SAT -->
+                    <div class="info-box" style="background-color: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107;">
+                        <p><strong>&#9888;&#65039; Límites del SAT - Lee esto antes de descargar</strong></p>
+                        <p style="font-size: 0.9em; margin: 8px 0;">
+                            El SAT tiene límites estrictos en su servicio de descarga masiva:
+                        </p>
+                        <ul style="font-size: 0.85em; margin: 8px 0 8px 20px; line-height: 1.6;">
+                            <li>&#128202; <strong>Máximo ~12 peticiones por hora</strong></li>
+                            <li>&#128197; <strong>Rangos muy amplios pueden ser rechazados</strong></li>
+                            <li>&#128260; <strong>"Ambos" (vigentes + canceladas) = 2 peticiones por tipo</strong></li>
+                            <li>&#128257; <strong>Reintentos automáticos activos</strong> - Si el SAT responde 5002 variamos los parámetros hasta 20 veces por ti</li>
+                            <li>&#9201; <strong>Si te marca error, espera 1 hora antes de reintentar</strong></li>
+                            <li>&#9889; <strong>Año completo puede tardar 5-10 minutos</strong> - Ten paciencia o usa mes por mes</li>
+                        </ul>
+                        <p style="font-size: 0.85em; margin: 8px 0; color: #ffc107;">
+                            &#128161; <strong>Recomendación:</strong> Usa "Mes específico" en lugar de "Año completo" para evitar problemas.
+                        </p>
+                    </div>
+
+                    <!-- Recordatorio sobre FechaPago -->
+                    <div class="info-box" style="background-color: rgba(13, 110, 253, 0.08); border-left: 4px solid #0d6efd;">
+                        <p><strong>&#129534; Importante para declaraciones anuales</strong></p>
+                        <ul style="font-size: 0.85em; margin: 8px 0 0 18px; line-height: 1.6;">
+                            <li>Para el ejercicio fiscal solo cuentan los CFDI cuya <strong>FechaPago</strong> (complemento de nómina) caiga dentro del periodo seleccionado.</li>
+                            <li>Los recibos de nómina suelen timbrarse en enero del año siguiente; extendemos automáticamente la consulta unas semanas y luego aplicamos el filtro por <strong>FechaPago</strong> para quedarnos solo con el ejercicio correcto.</li>
+                            <li>Cuando el SAT timbra fuera del ejercicio, descargaremos el XML, pero podrás decidir si se descarta automáticamente.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Tipo de Descarga -->
+                    <div class="form-section">
+                        <h3>&#127919; Tipo de Descarga</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="tipo_descarga" value="anio_completo" checked onchange="updateDateFields()">
+                                <span>
+                                    &#128197; <strong>Año completo</strong> (Todos los documentos del año)
+                                </span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="tipo_descarga" value="mes_especifico" onchange="updateDateFields()">
+                                <span>
+                                    &#128198; <strong>Un mes específico</strong> (Recomendado - más confiable)
+                                </span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="tipo_descarga" value="rango_personalizado" onchange="updateDateFields()">
+                                <span>
+                                    &#128202; <strong>Rango de fechas personalizado</strong>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Configuracion de Fechas -->
+                    <div class="form-section">
+                        <h3>&#128197; Configuracion de Fechas</h3>
+
+                        <!-- Año fiscal -->
+                        <div id="anio-field" class="form-group">
+                            <label for="anio_fiscal">Año fiscal:</label>
+                            <select id="anio_fiscal" name="anio_fiscal">
+                                <!-- Populated by JavaScript -->
+                            </select>
+                        </div>
+
+                        <!-- Mes específico -->
+                        <div id="mes-field" class="form-group" style="display: none;">
+                            <label for="mes">Mes:</label>
+                            <select id="mes" name="mes">
+                                <option value="01">Enero</option>
+                                <option value="02">Febrero</option>
+                                <option value="03">Marzo</option>
+                                <option value="04">Abril</option>
+                                <option value="05">Mayo</option>
+                                <option value="06">Junio</option>
+                                <option value="07">Julio</option>
+                                <option value="08">Agosto</option>
+                                <option value="09">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                        </div>
+
+                        <!-- Rango personalizado -->
+                        <div id="rango-fields" style="display: none;">
+                            <div class="form-group">
+                                <label for="fecha_inicio">Fecha inicio:</label>
+                                <input type="datetime-local" id="fecha_inicio" name="fecha_inicio" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="fecha_fin">Fecha fin:</label>
+                                <input type="datetime-local" id="fecha_fin" name="fecha_fin" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtro automático por FechaPago -->
+                    <div class="form-section">
+                        <h3>&#129529; Filtro automático por FechaPago</h3>
+                        <label class="checkbox-option">
+                            <input type="checkbox" id="filter_fecha_pago" name="filter_fecha_pago" value="1" checked>
+                            <span>
+                                &#128269; <strong>Eliminar CFDI de nomina fuera del periodo seleccionado</strong>
+                                <small>Descartaremos los XML cuya FechaPago esté fuera del rango/año elegido (recomendado).</small>
+                            </span>
+                        </label>
+                        <p class="hint" style="margin-top: 8px;">
+                            Si prefieres revisar manualmente, desactiva esta opción y conservaremos todos los archivos descargados.
+                        </p>
+                    </div>
+
+                    <!-- Tipos de Documentos -->
+                    <div class="form-section">
+                        <h3>&#128196; Tipos de Documentos a Descargar</h3>
+                        <div class="checkbox-group">
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="doc_nomina" value="1" checked>
+                                <span>
+                                    &#128188; <strong>CFDIs de Nomina</strong>
+                                    <small>Recibos de nómina y sueldos (INGRESOS)</small>
+                                </span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="doc_retenciones" value="1" checked>
+                                <span>
+                                    &#127974; <strong>Constancias de Retenciones</strong>
+                                    <small>Intereses, Dividendos, Honorarios (INGRESOS)</small>
+                                </span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="doc_ingresos" value="1">
+                                <span>
+                                    &#9888;&#65039; <strong>Otros CFDIs Recibidos</strong>
+                                    <small>Incluye compras/gastos - Usar solo si necesitas todo</small>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="info-box" style="margin-top: 12px; background-color: rgba(111, 66, 193, 0.08); border-left: 4px solid #6f42c1;">
+                            <p><strong>&#127974; Nota sobre constancias de retenciones</strong></p>
+                            <ul style="font-size: 0.85em; margin: 6px 0 0 18px; line-height: 1.5;">
+                                <li>El SAT suele timbrar intereses/dividendos del ejercicio seleccionado durante los primeros meses del año siguiente. Por eso consultamos esos XML agregando <strong>+1 año</strong> automáticamente (ej.: ejercicio 2024 &rarr; consulta en 2025). Tus carpetas siguen ordenadas por el ejercicio que elegiste.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Estado de Facturas -->
+                    <div class="form-section">
+                        <h3>&#10003; Estado de las Facturas</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="document_status" value="active" checked>
+                                <span>
+                                    &#9989; <strong>Solo vigentes</strong>
+                                    <small>Facturas validas (recomendado)</small>
+                                </span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="document_status" value="cancelled">
+                                <span>
+                                    &#10060; <strong>Solo canceladas</strong>
+                                    <small>Facturas canceladas</small>
+                                </span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="document_status" value="both">
+                                <span>
+                                    &#128260; <strong>Ambos</strong>
+                                    <small>Se harán 2 descargas separadas</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Contrasena FIEL -->
+                    <div class="form-section">
+                        <h3>&#128274; Contrasena FIEL</h3>
+                        <div class="info-box">
+                            <p><strong>&#128274; Seguridad:</strong> La contrasena NO se guarda, se solicita cada vez.</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="fiel_password_download">Contrasena de la llave privada (.key):</label>
+                            <input type="password" id="fiel_password_download" name="fiel_password"
+                                   placeholder="Contrasena de tu FIEL" required autocomplete="off">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="show-password-download" onchange="togglePasswordDownload()">
+                                <label for="show-password-download">Mostrar contrasena</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-info" onclick="closeModal('download-modal')">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success" id="btn-iniciar-descarga">
+                        &#128229; Iniciar Descarga
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Generar Papel de Trabajo -->
+    <div id="report-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('report-modal')">&times;</span>
+                <h2>&#128202; Generacion de Papel de Trabajo</h2>
+                <p>Procesa los XML descargados y obten el papel de trabajo en Excel</p>
+            </div>
+
+            <div class="modal-body">
+                <div class="info-box" style="margin-bottom: 20px;">
+                    <p><strong>&iquest;Que hace este proceso?</strong></p>
+                    <ul style="font-size: 0.9em; margin: 8px 0 0 18px; line-height: 1.6;">
+                        <li>Lee los XML descargados en la seccion "Descargar del SAT".</li>
+                        <li>Clasifica Nominas, Intereses, Dividendos y Enajenacion de acciones.</li>
+                        <li>Genera un archivo Excel con hojas separadas por tipo de ingreso.</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <label for="report-periodo">Ejercicio a procesar:</label>
+                    <select id="report-periodo" name="report_periodo">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                    <small class="hint">Selecciona el ejercicio con descargas listas. Usaremos esa carpeta para generar el papel.</small>
+                </div>
+
+                <div class="form-section tabulador-section">
+                    <h3>&#128196; Tabulador ISR (obligatorio)</h3>
+                    <p class="tabulador-description">
+                        Copia el tabulador oficial del SAT y pegalo en las celdas siguientes. Puedes pegarlo directo desde Excel: haz clic en la primera celda y presiona Ctrl+V.
+                    </p>
+                    <p class="hint">El ejercicio elegido en "Ejercicio a procesar" define que tabulador ISR se carga y se guarda.</p>
+                    <div class="tabulador-actions">
+                        <button type="button" class="btn btn-secondary" id="tabulador-add-row">+ Agregar fila</button>
+                        <button type="button" class="btn btn-secondary" id="tabulador-delete-row">- Eliminar fila</button>
+                        <button type="button" class="btn btn-warning" id="tabulador-clear">&#128465; Limpiar tabla</button>
+                        <button type="button" class="btn btn-primary" id="tabulador-save">&#128190; Guardar tabulador</button>
+                    </div>
+                    <div class="tabulador-table-wrapper">
+                        <table id="tabulador-table" class="tabulador-table">
+                            <thead>
+                                <tr>
+                                    <th>Limite inferior $</th>
+                                    <th>Limite superior $</th>
+                                    <th>Cuota fija $</th>
+                                    <th>% para aplicarse</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="hint">Asegurate de capturar todas las filas aplicables al ejercicio seleccionado.</p>
+                    <p class="tabulador-save-status" id="tabulador-save-status" role="status" aria-live="polite"></p>
+                    <p class="form-error" id="tabulador-error" role="alert" style="display: none;"></p>
+                </div>
+
+                <div id="report-status-box" class="info-box" style="background-color: rgba(0, 188, 140, 0.1); border-left: 4px solid #00bc8c;">
+                    <p><strong>Estado del papel de trabajo</strong></p>
+                    <p id="report-status-message" style="margin-top: 6px;">Aún no hay papeles de trabajo generados.</p>
+                    <a id="modal-report-download" class="btn btn-secondary btn-disabled" style="margin-top: 12px;">
+                        &#128200; Ver Papeles de trabajo generados
+                    </a>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('report-modal')">Cerrar</button>
+                <button type="button" class="btn btn-success" id="btn-generar-reporte">&#9881;&#65039; Generar Papel de Trabajo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Contribuyente -->
+    <div id="contribuyente-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('contribuyente-modal')">&times;</span>
+                <h2>&#128100; Datos del Contribuyente</h2>
+                <p>Ingresa tus datos fiscales para generar los papeles de trabajo</p>
+            </div>
+
+            <form onsubmit="saveContribuyente(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nombre">Nombre Completo:</label>
+                        <input type="text" id="nombre" name="nombre" placeholder="Ej: Juan Perez Garcia" required>
+                        <small class="hint">Tu nombre completo como aparece en tu identificacion oficial</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rfc">RFC:</label>
+                        <input type="text" id="rfc" name="rfc" placeholder="Ej: ABCD123456EF7"
+                               maxlength="13" style="text-transform: uppercase;"
+                               oninput="validateRfcInput()" required>
+                        <small class="hint">13 caracteres: 4 letras + 6 digitos (fecha) + 3 caracteres</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curp">CURP:</label>
+                        <input type="text" id="curp" name="curp" placeholder="Ej: ABCD123456HDFXXX01"
+                               maxlength="18" style="text-transform: uppercase;"
+                               oninput="validateCurpInput()" required>
+                        <small class="hint">18 caracteres alfanumericos de tu CURP</small>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('contribuyente-modal')">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="clearContribuyenteForm()">
+                        Limpiar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        &#128190; Guardar Datos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Preparar Paquetes SAT -->
+    <div id="packages-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('packages-modal')">&times;</span>
+                <h2>&#128230; Preparar Paquetes para Carga SAT</h2>
+                <p>Genera archivos ZIP de hasta 4 MB por carpeta de XML y un ZIP del papel de trabajo</p>
+            </div>
+
+            <form onsubmit="generateSatPackages(event)">
+                <div class="modal-body">
+                    <div class="info-box" style="margin-bottom: 16px;">
+                        <p><strong>&#8505;&#65039; Requisitos para listar un ejercicio</strong></p>
+                        <ul style="font-size: 0.9em; margin: 8px 0 0 18px; line-height: 1.6;">
+                            <li>XML vigentes en: <strong>CONSTANCIAS_DE_RETENCIONES</strong>, <strong>OTROS_CFDI</strong> y <strong>RECIBOS_DE_NOMINA</strong>.</li>
+                            <li>Papel de trabajo del mismo ejercicio en la carpeta de reportes.</li>
+                            <li>Si un ZIP rebasa 4 MB, se divide automáticamente en partes (<strong>_P1</strong>, <strong>_P2</strong>, etc.).</li>
+                        </ul>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="packages-periodo">Ejercicio elegible:</label>
+                        <select id="packages-periodo" name="packages_periodo">
+                            <option value="">Cargando ejercicios elegibles...</option>
+                        </select>
+                        <small class="hint">Solo aparecen ejercicios con XML vigentes en las 3 carpetas y papel de trabajo del mismo año.</small>
+                    </div>
+
+                    <div id="packages-status-box" class="info-box" style="background-color: rgba(13, 110, 253, 0.10); border-left: 4px solid #0d6efd;">
+                        <p><strong>Estado de preparación</strong></p>
+                        <p id="packages-status-message" style="margin-top: 6px;">Aún no has generado paquetes ZIP.</p>
+                        <a id="packages-open-folder" class="btn btn-secondary btn-disabled" style="margin-top: 12px;" href="#" aria-disabled="true" tabindex="-1">
+                            &#128193; Abrir ubicación de paquetes
+                        </a>
+                    </div>
+
+                    <div id="packages-results" class="info-box" style="margin-top: 14px; display: none;"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('packages-modal')">Cerrar</button>
+                    <button type="submit" class="btn btn-success" id="btn-generar-paquetes">&#9881;&#65039; Generar Paquetes ZIP</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Popup de Progreso (Centrado) -->
+    <div id="progress-popup" class="progress-popup" style="display: none;">
+        <div class="progress-popup-content">
+            <div class="progress-popup-header">
+                <h3>&#8987; Descarga en Progreso</h3>
+            </div>
+            <div class="progress-popup-body">
+                <div id="progress-text" class="info-box">
+                    <p>Iniciando descarga...</p>
+                </div>
+                <p id="request-counter" style="text-align: center; font-size: 0.85em; color: #ffc107; margin: 8px 0;"></p>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <div id="progress-log" class="progress-log"></div>
+            </div>
+            <div class="progress-popup-footer" id="progress-footer" style="display: none;">
+                <button type="button" class="btn btn-success" onclick="closeProgressPopup()">
+                    &#9989; Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript: populate year selects -->
+    <script>
+    (function() {
+        var currentYear = new Date().getFullYear();
+        var minYear = currentYear - 5;
+        var selectors = [document.getElementById('anio_fiscal'), document.getElementById('report-periodo')];
+        selectors.forEach(function(sel) {
+            if (!sel) return;
+            for (var y = currentYear; y >= minYear; y--) {
+                var opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = sel.id === 'report-periodo' ? 'Ejercicio ' + y : y;
+                sel.appendChild(opt);
+            }
+        });
+    })();
+    </script>
+
+    <!-- JavaScript -->
+    <script src="/assets/js/main.js"></script>
+</body>
+</html>

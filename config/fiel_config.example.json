@@ -1,0 +1,10 @@
+{
+  "certificate_path": "fiel-uploads/certificado.cer",
+  "key_path": "fiel-uploads/llave.key",
+  "rfc": "XAXX010101000",
+  "nombre": "NOMBRE DEL CONTRIBUYENTE",
+  "valido_desde": "YYYY-MM-DD",
+  "valido_hasta": "YYYY-MM-DD",
+  "serial": "NUMERO_DE_SERIE",
+  "fecha_configuracion": "YYYY-MM-DD HH:MM:SS"
+}

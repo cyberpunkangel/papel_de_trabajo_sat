@@ -1,0 +1,32 @@
+#!/bin/sh
+
+set -eu
+
+echo "[pre-push] Ejecutando validaciones de seguridad..."
+
+BLOCKED_PATHS_REGEX='^(fiel-uploads/|descargas/|reportes/|storage/|config/.*\.json$|.*\.(cer|key|p12|pfx|pem|der)$)'
+
+tracked_sensitive_paths=$(git ls-files | grep -E "$BLOCKED_PATHS_REGEX" | grep -vE '^config/.*\.example\.json$' || true)
+if [ -n "$tracked_sensitive_paths" ]; then
+  echo "[pre-push] ERROR: Se detectaron archivos/rutas sensibles versionados:" >&2
+  echo "$tracked_sensitive_paths" >&2
+  echo "[pre-push] Solución: elimina del índice con 'git rm --cached <archivo>' y confirma .gitignore." >&2
+  exit 1
+fi
+
+json_like_files=$(git ls-files '*.json' '*.yml' '*.yaml' '*.env' '*.ini' '*.toml' '*.txt' | grep -vE '\.example\.(json|ya?ml|env)$' || true)
+temp_report="${TMPDIR:-.}/prepush_secrets_$$.log"
+
+if [ -n "$json_like_files" ]; then
+  if echo "$json_like_files" | xargs git grep -nI -E 'BEGIN [A-Z ]*PRIVATE KEY|ghp_[A-Za-z0-9]{36,}|AKIA[0-9A-Z]{16}|"(password|token|api[_-]?key|client[_-]?secret|private[_-]?key)"[[:space:]]*:[[:space:]]*"[^\"]+"' -- >"$temp_report" 2>/dev/null; then
+    echo "[pre-push] ERROR: Posibles secretos detectados en archivos versionados:" >&2
+    cat "$temp_report" >&2
+    echo "[pre-push] Si es un falso positivo, mueve ese valor a ejemplos o variables de entorno." >&2
+    rm -f "$temp_report"
+    exit 1
+  fi
+  rm -f "$temp_report" || true
+fi
+
+echo "[pre-push] OK: sin rutas sensibles versionadas ni secretos evidentes."
+exit 0

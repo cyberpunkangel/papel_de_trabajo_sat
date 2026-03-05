@@ -1,0 +1,37 @@
+# =========================
+# Datos sensibles / locales
+# =========================
+
+# Certificados y llaves FIEL
+/fiel-uploads/
+*.cer
+*.key
+*.p12
+*.pfx
+*.pem
+*.der
+
+# Configuraciones locales con datos personales
+/config/*.json
+!/config/*.example.json
+
+# Descargas y reportes fiscales generados localmente
+/descargas/
+/reportes/
+
+# Artefactos y bitácoras de ejecución
+/storage/
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Archivos temporales
+tmpclaude-*
+~$*.xlsx
+
+# IDE
+/.vscode/
