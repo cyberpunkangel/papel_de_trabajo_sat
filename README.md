@@ -14,9 +14,9 @@ Ejemplo en Windows (CMD):
 cd C:\Users\vboxuser\Downloads\papel_de_trabajo_sat-main\papel_de_trabajo_sat-main
 ```
 
-1) Instala Python 3.10+
-- Windows: descarga Python desde su sitio oficial y marca la opción de agregar a `PATH` durante la instalación.
-- Linux: instala `python3`, `python3-venv` y `pip` con tu gestor de paquetes.
+1) Python 3.10+ (auto-detección)
+- Si ya tienes Python 3.10+ instalado, el bootstrap usa esa instalación (no instala otra).
+- Si no detecta una versión adecuada, intenta instalarla automáticamente.
 
 2) Ejecuta bootstrap (un solo comando)
 
@@ -38,7 +38,7 @@ Linux/macOS (bash):
 bash ./scripts/bootstrap-local.sh
 ```
 
-- El bootstrap crea `.venv`, instala dependencias y precrea `config/*.json` locales desde los `.example` si aún no existen.
+- El bootstrap valida Python `>=3.10`, crea `.venv`, instala dependencias y precrea `config/*.json` locales desde los `.example` si aún no existen.
 
 3) Inicia la aplicación
 
