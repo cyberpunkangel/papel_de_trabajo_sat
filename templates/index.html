@@ -114,7 +114,7 @@
                         <p>&bull; Certificado (.cer) - Archivo publico de tu FIEL</p>
                         <p>&bull; Llave privada (.key) - Archivo de llave cifrada</p>
                         <p>&bull; Contrasena - La contrasena de tu llave privada</p>
-                        <p><strong>&#9888;&#65039; Por seguridad, la contrasena NO se guarda en disco.</strong></p>
+                        <p><strong>&#9888;&#65039; Por seguridad, solo la contrasena NO se guarda en tu disco local.</strong></p>
                     </div>
 
                     <!-- Formulario -->
@@ -141,8 +141,9 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="password">Contrasena:</label>
-                        <input type="password" id="password" placeholder="Contrasena de la llave privada">
+                        <label for="password">Contrasena (opcional):</label>
+                        <input type="password" id="password" placeholder="Contrasena de la llave privada (opcional)">
+                        <small>Opcional: captúrala si quieres usar el botón "Comprobar archivos y contrasena" en este paso.</small>
                         <div class="checkbox-wrapper">
                             <input type="checkbox" id="show-password" onchange="togglePassword('password')">
                             <label for="show-password">Mostrar contrasena</label>
@@ -155,7 +156,8 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-info" onclick="closeModal('fiel-modal')">Cancelar</button>
-                    <button type="submit" class="btn btn-success">&#128190; Guardar y Validar</button>
+                    <button type="button" id="btn-validate-fiel" class="btn btn-warning" onclick="validateFielIntegrity()">&#128269; Comprobar archivos y contrasena</button>
+                    <button type="submit" class="btn btn-success">&#128190; Guardar configuración</button>
                 </div>
             </form>
         </div>

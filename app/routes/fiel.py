@@ -37,18 +37,12 @@ async def check_fiel_status():
 async def upload_fiel(
     cert_file: UploadFile = File(...),
     key_file: UploadFile = File(...),
-    password: str = Form(...),
+    password: str = Form(''),
 ):
     """Upload and validate FIEL certificate files."""
     tmp_cert = None
     tmp_key = None
     try:
-        if not password:
-            return JSONResponse(
-                status_code=400,
-                content={'success': False, 'message': 'No se recibio la contrasena'},
-            )
-
         # Write uploaded files to temp paths
         cert_bytes = await cert_file.read()
         key_bytes = await key_file.read()
@@ -61,13 +55,24 @@ async def upload_fiel(
         tmp_key.write(key_bytes)
         tmp_key.close()
 
-        # Validate certificates
-        cert_info = FielConfig.validate_certificates(
-            tmp_cert.name, tmp_key.name, password,
-        )
-
         # Copy files to fiel-uploads/
         file_paths = FielConfig.copy_files(tmp_cert.name, tmp_key.name)
+
+        trimmed_password = (password or '').strip()
+        validated_now = bool(trimmed_password)
+
+        cert_info = {
+            'rfc': 'N/A',
+            'nombre': 'N/A',
+            'valido_desde': 'N/A',
+            'valido_hasta': 'N/A',
+            'serial': 'N/A',
+        }
+
+        if validated_now:
+            cert_info = FielConfig.validate_certificates(
+                tmp_cert.name, tmp_key.name, trimmed_password,
+            )
 
         # Build and save configuration
         config = {
@@ -84,9 +89,18 @@ async def upload_fiel(
         if not FielConfig.save(config):
             raise Exception('No se pudo guardar la configuracion')
 
+        if validated_now:
+            message = 'Configuracion guardada y validada exitosamente'
+        else:
+            message = (
+                'Configuracion guardada sin validar contraseña. '
+                'Si deseas validar en este paso, usa el botón "Comprobar archivos y contraseña".'
+            )
+
         return {
             'success': True,
-            'message': 'Configuracion guardada exitosamente',
+            'validated_now': validated_now,
+            'message': message,
             'data': {
                 'rfc': cert_info['rfc'],
                 'nombre': cert_info['nombre'],
@@ -102,6 +116,62 @@ async def upload_fiel(
         )
     finally:
         # Clean up temp files
+        for tmp in (tmp_cert, tmp_key):
+            if tmp is not None:
+                try:
+                    os.unlink(tmp.name)
+                except OSError:
+                    pass
+
+
+@router.post("/validate")
+async def validate_fiel_integrity(
+    cert_file: UploadFile = File(...),
+    key_file: UploadFile = File(...),
+    password: str = Form(...),
+):
+    """Validate FIEL files + password integrity without saving configuration."""
+    tmp_cert = None
+    tmp_key = None
+    try:
+        if not password:
+            return JSONResponse(
+                status_code=400,
+                content={'success': False, 'message': 'Debes capturar la contrasena para validar.'},
+            )
+
+        cert_bytes = await cert_file.read()
+        key_bytes = await key_file.read()
+
+        tmp_cert = tempfile.NamedTemporaryFile(delete=False, suffix='.cer')
+        tmp_cert.write(cert_bytes)
+        tmp_cert.close()
+
+        tmp_key = tempfile.NamedTemporaryFile(delete=False, suffix='.key')
+        tmp_key.write(key_bytes)
+        tmp_key.close()
+
+        cert_info = FielConfig.validate_certificates(
+            tmp_cert.name, tmp_key.name, password,
+        )
+
+        return {
+            'success': True,
+            'message': 'Integridad validada correctamente',
+            'data': {
+                'rfc': cert_info['rfc'],
+                'nombre': cert_info['nombre'],
+                'valido_hasta': cert_info['valido_hasta'],
+                'serial': cert_info['serial'],
+            },
+        }
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={'success': False, 'message': str(e)},
+        )
+    finally:
         for tmp in (tmp_cert, tmp_key):
             if tmp is not None:
                 try:

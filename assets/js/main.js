@@ -27,8 +27,9 @@ const TABULADOR_COLUMN_TOOLTIPS = {
 const FORM_FIELD_TOOLTIPS = {
     '#cert-file': 'Selecciona el certificado público de tu e.firma con extensión .cer.',
     '#key-file': 'Selecciona la llave privada de tu e.firma con extensión .key.',
-    '#password': 'Captura la contraseña de la llave privada (.key).',
+    '#password': 'Contraseña opcional para comprobar archivos y contraseña en este paso.',
     '#show-password': 'Muestra u oculta la contraseña de la e.firma.',
+    '#btn-validate-fiel': 'Comprueba que certificado, llave y contraseña correspondan entre sí, sin guardar la contraseña en disco.',
     'input[name="tipo_descarga"][value="anio_completo"]': 'Consulta todos los documentos del ejercicio fiscal seleccionado.',
     'input[name="tipo_descarga"][value="mes_especifico"]': 'Consulta solo un mes del ejercicio; suele ser más estable con SAT.',
     'input[name="tipo_descarga"][value="rango_personalizado"]': 'Permite definir fechas exactas de inicio y fin para la consulta.',
@@ -199,10 +200,10 @@ function showAlert(message, type = 'info') {
 }
 
 // Validar formulario FIEL
-function validateFielForm() {
+function validateFielForm(requirePassword = false) {
     const certFile = document.getElementById('cert-file').files[0];
     const keyFile = document.getElementById('key-file').files[0];
-    const password = document.getElementById('password').value;
+    const password = document.getElementById('password').value.trim();
     
     if (!certFile) {
         showAlert('Por favor selecciona el archivo de certificado (.cer)', 'error');
@@ -213,9 +214,9 @@ function validateFielForm() {
         showAlert('Por favor selecciona el archivo de llave privada (.key)', 'error');
         return false;
     }
-    
-    if (!password) {
-        showAlert('Por favor ingresa la contraseña', 'error');
+
+    if (requirePassword && !password) {
+        showAlert('Para validar integridad, captura la contraseña de la llave privada', 'error');
         return false;
     }
     
@@ -238,7 +239,7 @@ async function saveFielConfig(event) {
     // Mostrar spinner
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<div class="spinner"></div> Validando...';
+    submitBtn.innerHTML = '<div class="spinner"></div> Guardando...';
     submitBtn.disabled = true;
 
     try {
@@ -250,10 +251,17 @@ async function saveFielConfig(event) {
         const result = await response.json();
 
         if (result.success) {
-            showAlert(
-                `Configuracion validada y guardada exitosamente\n\nRFC: ${result.data.rfc}\nNombre: ${result.data.nombre}\nValido hasta: ${result.data.valido_hasta}\nSerial: ${result.data.serial}`,
-                'success'
-            );
+            if (result.validated_now) {
+                showAlert(
+                    `Configuracion validada y guardada exitosamente\n\nRFC: ${result.data.rfc}\nNombre: ${result.data.nombre}\nValido hasta: ${result.data.valido_hasta}\nSerial: ${result.data.serial}`,
+                    'success'
+                );
+            } else {
+                showAlert(
+                    `${result.message}`,
+                    'success'
+                );
+            }
 
             // Cerrar modal después de 3 segundos para que alcance a leer
             setTimeout(() => {
@@ -269,6 +277,47 @@ async function saveFielConfig(event) {
     } finally {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+    }
+}
+
+// Validar integridad de FIEL sin guardar contraseña
+async function validateFielIntegrity() {
+    if (!validateFielForm(true)) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('cert_file', document.getElementById('cert-file').files[0]);
+    formData.append('key_file', document.getElementById('key-file').files[0]);
+    formData.append('password', document.getElementById('password').value.trim());
+
+    const validateBtn = document.getElementById('btn-validate-fiel');
+    const originalText = validateBtn.innerHTML;
+    validateBtn.innerHTML = '<div class="spinner"></div> Validando...';
+    validateBtn.disabled = true;
+
+    try {
+        const response = await fetch('/api/fiel/validate', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showAlert(
+                `Integridad validada correctamente\n\nRFC: ${result.data.rfc}\nNombre: ${result.data.nombre}\nValido hasta: ${result.data.valido_hasta}\nSerial: ${result.data.serial}`,
+                'success'
+            );
+        } else {
+            const msg = result.message || 'No se pudo validar la integridad de la FIEL';
+            showAlert(`Error: ${msg}`, 'error');
+        }
+    } catch (error) {
+        showAlert(`Error de conexion con el servidor: ${error.message}`, 'error');
+    } finally {
+        validateBtn.innerHTML = originalText;
+        validateBtn.disabled = false;
     }
 }
 
