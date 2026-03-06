@@ -2,168 +2,82 @@
 
 Aplicación en **Python/FastAPI** para descarga masiva de CFDI y retenciones, con interfaz web y generación de reportes.
 
-## Guía rápida para principiantes (Docker)
+## Guía rápida para principiantes (Local, sin Docker)
 
-Si nunca has levantado un proyecto con Docker, sigue estos pasos en orden.
+Si quieres empezar desde cero sin complicaciones, usa el bootstrap local.
 
-1) Instala Docker Desktop
-- Descarga e instala Docker Desktop (incluye Docker Engine y Docker Compose).
-- Reinicia tu equipo si el instalador lo solicita.
-- Abre Docker Desktop y espera a que diga que está corriendo.
+1) Instala Python 3.10+
+- Windows: descarga Python desde su sitio oficial y marca la opción de agregar a `PATH` durante la instalación.
+- Linux: instala `python3`, `python3-venv` y `pip` con tu gestor de paquetes.
 
-2) Verifica que Docker funciona
-- Abre una terminal en la carpeta del proyecto y ejecuta:
+2) Ejecuta bootstrap (un solo comando)
 
-```bash
-docker --version
-docker compose version
-```
-
-- Si ambos comandos responden con una versión, todo está listo.
-
-3) Levanta con un solo comando (recomendado)
-
-Windows (CMD clásico):
+Windows (CMD):
 
 ```cmd
-scripts\start-docker.cmd
+scripts\bootstrap-local.cmd
 ```
 
 Windows (PowerShell):
 
 ```powershell
-.\scripts\start-docker.ps1
+.\scripts\bootstrap-local.ps1
 ```
 
 Linux/macOS (bash):
 
 ```bash
-bash ./scripts/start-docker.sh
+bash ./scripts/bootstrap-local.sh
 ```
 
-- Este comando ejecuta bootstrap + pre-chequeo + `docker compose up -d --build`.
-- Si todo está bien, la app queda en <http://127.0.0.1:8000>.
+- El bootstrap crea `.venv`, instala dependencias y precrea `config/*.json` locales desde los `.example` si aún no existen.
 
-4) Revisa que todo arrancó bien
+3) Inicia la aplicación
+
+Windows:
+
+```cmd
+.venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Linux/macOS:
 
 ```bash
-docker compose logs -f
+.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-5) Detener la aplicación
+Abre: <http://127.0.0.1:8000>
 
-```bash
-docker compose down
-```
-
-### (Opcional) Ejecutar bootstrap/pre-chequeo por separado
-
-Bootstrap:
+### Atajo: bootstrap + ejecutar en un paso
 
 Windows (PowerShell):
 
 ```powershell
-.\scripts\bootstrap-docker.ps1
-```
-
-Windows (CMD clásico):
-
-```cmd
-scripts\bootstrap-docker.cmd
+.\scripts\bootstrap-local.ps1 -Run
 ```
 
 Linux/macOS (bash):
 
 ```bash
-bash ./scripts/bootstrap-docker.sh
+bash ./scripts/bootstrap-local.sh --run
 ```
-
-- El bootstrap intenta preparar el entorno y luego ejecuta el pre-chequeo final.
-- En Windows puede instalar/actualizar WSL y validar distro.
-- En Windows también intenta autorreparar errores del daemon (por ejemplo `docker info` con error 500/pipe).
-- En Linux puede instalar Docker automáticamente en distribuciones comunes.
-
-No necesitas ejecutar `docker info` manualmente: el bootstrap ya valida que el engine esté listo.
-
-Pre-chequeo:
-
-Windows (PowerShell):
-
-```powershell
-.\scripts\preflight-docker.ps1
-```
-
-Windows (CMD clásico):
-
-```cmd
-scripts\preflight-docker.cmd
-```
-
-Linux/macOS (bash):
-
-```bash
-bash ./scripts/preflight-docker.sh
-```
-
-- Los scripts validan Docker y que el engine esté corriendo.
-- En Windows además valida WSL y que exista al menos una distro instalada.
-- Si te falta la distro, también puedes pedir instalación automática:
-
-```powershell
-.\scripts\preflight-docker.ps1 -AutoInstallUbuntu
-```
-
-- Si instala Ubuntu, reinicia la VM y ejecuta de nuevo el bootstrap/pre-chequeo.
-
-- Cuando ya no veas errores, abre tu navegador en: <http://127.0.0.1:8000>
-
-Notas importantes:
-- No necesitas instalar Python local para usar Docker.
-- En el primer arranque, la app crea automáticamente archivos de configuración vacíos para que después los llenes desde la interfaz.
 
 ## Requisitos
 
-- **Recomendado (Docker):**
-  - Docker Engine + Docker Compose (o Docker Desktop)
-  - No necesitas Python ni instalar dependencias localmente
-- **Alternativa (modo local sin Docker):**
-  - Python 3.10+
-  - Dependencias en `requirements.txt`
+- Python 3.10+
+- Dependencias en `requirements.txt`
 
-## Inicio rápido (Docker, detallado)
+## Configuración local
 
-1) Levanta la app:
+El bootstrap crea, si no existen:
 
-```bash
-docker compose up -d --build
-```
+- `config/fiel_config.json`
+- `config/contribuyente_data.json`
+- `config/tabulador_isr.json`
 
-2) Ver logs:
+También crea/prepara el entorno virtual `.venv` con todas las dependencias.
 
-```bash
-docker compose logs -f
-```
-
-3) Detener contenedor:
-
-```bash
-docker compose down
-```
-
-La app queda disponible en <http://127.0.0.1:8000>.
-
-### Configuración local autogenerada
-
-Al iniciar la aplicación (también con Docker), se crean automáticamente si no existen:
-
-- `config/fiel_config.json` (vacío)
-- `config/contribuyente_data.json` (vacío)
-- `config/tabulador_isr.json` (con `{"periods": {}}`)
-- carpetas locales: `fiel-uploads/`, `descargas/`, `reportes/`, `storage/`
-
-Después, captura los datos desde la interfaz de la aplicación (cliente). Si editas manualmente `config/fiel_config.json`, usa rutas válidas para tu sistema operativo.
-
-### (Opcional) Precrear archivos desde ejemplos
+Si necesitas crear los archivos manualmente:
 
 ```bash
 cp config/fiel_config.example.json config/fiel_config.json
@@ -179,38 +93,7 @@ Copy-Item config/contribuyente_data.example.json config/contribuyente_data.json
 Copy-Item config/tabulador_isr.example.json config/tabulador_isr.json
 ```
 
-Notas:
-- El contenedor usa volúmenes para `config`, `fiel-uploads`, `descargas`, `reportes` y `storage`.
-- Tus datos locales no se empaquetan en la imagen.
-- `config/fiel_config.json` sigue siendo local/ignorado por Git.
-
-## Modo local (sin Docker)
-
-### Instalación
-
-Windows (PowerShell):
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-Ubuntu / Linux (bash):
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Ejecución
-
-```bash
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Abre: <http://127.0.0.1:8000>.
+Edita `config/fiel_config.json` con rutas válidas para tu sistema operativo y después captura el resto desde la interfaz.
 
 ## Estructura principal
 
