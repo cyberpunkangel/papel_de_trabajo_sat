@@ -31,12 +31,42 @@ docker info
 
 - Si `docker info` falla, espera unos segundos o reinicia Docker Desktop y vuelve a intentar.
 
-4) Ejecuta pre-chequeo automático (recomendado)
+4) Ejecuta bootstrap automático (recomendado)
 
 Windows (PowerShell):
 
 ```powershell
-./scripts/preflight-docker.ps1
+.\scripts\bootstrap-docker.ps1
+```
+
+Windows (CMD clásico):
+
+```cmd
+powershell -ExecutionPolicy Bypass -File .\scripts\bootstrap-docker.ps1
+```
+
+Linux/macOS (bash):
+
+```bash
+bash ./scripts/bootstrap-docker.sh
+```
+
+- El bootstrap intenta preparar el entorno y luego ejecuta el pre-chequeo final.
+- En Windows puede instalar/actualizar WSL y validar distro.
+- En Linux puede instalar Docker automáticamente en distribuciones comunes.
+
+5) (Opcional) Ejecuta solo pre-chequeo
+
+Windows (PowerShell):
+
+```powershell
+.\scripts\preflight-docker.ps1
+```
+
+Windows (CMD clásico):
+
+```cmd
+powershell -ExecutionPolicy Bypass -File .\scripts\preflight-docker.ps1
 ```
 
 Linux/macOS (bash):
@@ -50,12 +80,12 @@ bash ./scripts/preflight-docker.sh
 - Si te falta la distro, también puedes pedir instalación automática:
 
 ```powershell
-./scripts/preflight-docker.ps1 -AutoInstallUbuntu
+.\scripts\preflight-docker.ps1 -AutoInstallUbuntu
 ```
 
 - Si instala Ubuntu, reinicia la VM y ejecuta de nuevo el pre-chequeo.
 
-5) Levanta la aplicación
+6) Levanta la aplicación
 
 ```bash
 docker compose up -d --build
@@ -64,7 +94,7 @@ docker compose up -d --build
 - Este comando descarga lo necesario, construye la imagen y arranca el sistema.
 - La primera vez puede tardar varios minutos.
 
-6) Revisa que todo arrancó bien
+7) Revisa que todo arrancó bien
 
 ```bash
 docker compose logs -f
@@ -73,7 +103,7 @@ docker compose logs -f
 - Cuando ya no veas errores, abre tu navegador en:
 - <http://127.0.0.1:8000>
 
-7) Detener la aplicación
+8) Detener la aplicación
 
 ```bash
 docker compose down
