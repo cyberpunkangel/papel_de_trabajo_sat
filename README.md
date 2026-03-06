@@ -2,9 +2,17 @@
 
 Aplicación en **Python/FastAPI** para descarga masiva de CFDI y retenciones, con interfaz web y generación de reportes.
 
-## Guía rápida para principiantes (Local, sin Docker)
+## Guía rápida para principiantes
 
 Si quieres empezar desde cero sin complicaciones, usa el bootstrap local.
+
+> Ejecuta todos los comandos desde la **raíz del proyecto** (la carpeta donde están `README.md`, `requirements.txt` y la carpeta `scripts/`).
+
+Ejemplo en Windows (CMD):
+
+```cmd
+cd C:\Users\vboxuser\Downloads\papel_de_trabajo_sat-main\papel_de_trabajo_sat-main
+```
 
 1) Instala Python 3.10+
 - Windows: descarga Python desde su sitio oficial y marca la opción de agregar a `PATH` durante la instalación.

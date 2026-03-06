@@ -1,7 +1,7 @@
 param(
     [switch]$Run,
-    [string]$Host = "127.0.0.1",
-    [int]$Port = 8000
+    [string]$BindHost = "127.0.0.1",
+    [int]$BindPort = 8000
 )
 
 $ErrorActionPreference = 'Stop'
@@ -57,10 +57,10 @@ Write-Host "[OK] Entorno local listo." -ForegroundColor Green
 
 if ($Run) {
     Write-Host "[bootstrap-local] Iniciando aplicación..." -ForegroundColor Cyan
-    & $venvPython -m uvicorn app.main:app --host $Host --port $Port --reload
+    & $venvPython -m uvicorn app.main:app --host $BindHost --port $BindPort --reload
     exit $LASTEXITCODE
 }
 
 Write-Host "Siguiente paso:" -ForegroundColor DarkCyan
-Write-Host ".\.venv\Scripts\python -m uvicorn app.main:app --host $Host --port $Port --reload" -ForegroundColor DarkCyan
+Write-Host ".\.venv\Scripts\python -m uvicorn app.main:app --host $BindHost --port $BindPort --reload" -ForegroundColor DarkCyan
 exit 0
