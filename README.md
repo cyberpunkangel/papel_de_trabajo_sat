@@ -21,7 +21,41 @@ docker compose version
 
 - Si ambos comandos responden con una versión, todo está listo.
 
-3) Levanta la aplicación
+3) Verifica que el motor (engine) esté activo
+- Antes de levantar la app, asegúrate de que Docker Desktop siga abierto.
+- Ejecuta:
+
+```bash
+docker info
+```
+
+- Si `docker info` falla, espera unos segundos o reinicia Docker Desktop y vuelve a intentar.
+
+4) Ejecuta pre-chequeo automático (recomendado)
+
+Windows (PowerShell):
+
+```powershell
+./scripts/preflight-docker.ps1
+```
+
+Linux/macOS (bash):
+
+```bash
+bash ./scripts/preflight-docker.sh
+```
+
+- Los scripts validan Docker y que el engine esté corriendo.
+- En Windows además valida WSL y que exista al menos una distro instalada.
+- Si te falta la distro, también puedes pedir instalación automática:
+
+```powershell
+./scripts/preflight-docker.ps1 -AutoInstallUbuntu
+```
+
+- Si instala Ubuntu, reinicia la VM y ejecuta de nuevo el pre-chequeo.
+
+5) Levanta la aplicación
 
 ```bash
 docker compose up -d --build
@@ -30,7 +64,7 @@ docker compose up -d --build
 - Este comando descarga lo necesario, construye la imagen y arranca el sistema.
 - La primera vez puede tardar varios minutos.
 
-4) Revisa que todo arrancó bien
+6) Revisa que todo arrancó bien
 
 ```bash
 docker compose logs -f
@@ -39,7 +73,7 @@ docker compose logs -f
 - Cuando ya no veas errores, abre tu navegador en:
 - <http://127.0.0.1:8000>
 
-5) Detener la aplicación
+7) Detener la aplicación
 
 ```bash
 docker compose down
