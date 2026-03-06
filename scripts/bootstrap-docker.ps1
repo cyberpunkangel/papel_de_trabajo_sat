@@ -16,6 +16,94 @@ function Test-Command {
     return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Start-DockerDesktop {
+    try {
+        Start-Process "docker-desktop:" -ErrorAction Stop | Out-Null
+        return
+    } catch {
+        try {
+            Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe" -ErrorAction Stop | Out-Null
+            return
+        } catch {
+            Write-Host "[WARN] No se pudo abrir Docker Desktop automáticamente. Ábrelo manualmente." -ForegroundColor Yellow
+        }
+    }
+}
+
+function Get-DockerInfoResult {
+    $output = ""
+    try {
+        $output = (& docker info 2>&1 | Out-String)
+        if ($LASTEXITCODE -eq 0) {
+            return @{ Success = $true; Output = $output }
+        }
+    } catch {
+        $output = ($_ | Out-String)
+    }
+    return @{ Success = $false; Output = $output }
+}
+
+function Wait-DockerEngine {
+    param(
+        [int]$Attempts = 24,
+        [int]$DelaySeconds = 5
+    )
+
+    for ($i = 0; $i -lt $Attempts; $i++) {
+        $result = Get-DockerInfoResult
+        if ($result.Success) {
+            return @{ Ready = $true; Output = $result.Output }
+        }
+        Start-Sleep -Seconds $DelaySeconds
+    }
+
+    $last = Get-DockerInfoResult
+    return @{ Ready = $false; Output = $last.Output }
+}
+
+function Repair-DockerEngine {
+    param([string]$LastOutput)
+
+    Write-Host "[bootstrap] Intentando autorreparación de Docker Engine..." -ForegroundColor Cyan
+
+    if ($LastOutput -match '500 Internal Server Error') {
+        Write-Host "[bootstrap] Detectado error 500 del daemon." -ForegroundColor Yellow
+    }
+    if ($LastOutput -match 'dockerDesktopLinuxEngine|pipe') {
+        Write-Host "[bootstrap] Detectado problema del pipe dockerDesktopLinuxEngine." -ForegroundColor Yellow
+    }
+
+    try {
+        wsl --shutdown
+        Write-Host "[bootstrap] WSL detenido (shutdown)." -ForegroundColor Cyan
+    } catch {
+        Write-Host "[WARN] No se pudo ejecutar wsl --shutdown." -ForegroundColor Yellow
+    }
+
+    try {
+        Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue | Stop-Process -Force
+        Start-Sleep -Seconds 2
+    } catch {
+        # no-op
+    }
+
+    if (Test-IsAdmin) {
+        try {
+            $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
+            if ($null -ne $svc) {
+                Restart-Service -Name "com.docker.service" -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 2
+            }
+        } catch {
+            Write-Host "[WARN] No se pudo reiniciar com.docker.service." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "[INFO] Sin privilegios de admin: se omite reinicio de servicio com.docker.service." -ForegroundColor DarkYellow
+    }
+
+    Start-DockerDesktop
+}
+
 Write-Host "[bootstrap] Preparando Docker en Windows..." -ForegroundColor Cyan
 
 if (-not (Test-Command -Name 'wsl')) {
@@ -59,37 +147,32 @@ if (-not (Test-Command -Name 'docker')) {
 
 if (-not $SkipDockerDesktopStart) {
     Write-Host "[bootstrap] Intentando abrir Docker Desktop..." -ForegroundColor Cyan
-    try {
-        Start-Process "docker-desktop:" -ErrorAction Stop | Out-Null
-    } catch {
-        try {
-            Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe" -ErrorAction Stop | Out-Null
-        } catch {
-            Write-Host "[WARN] No se pudo abrir Docker Desktop automáticamente. Ábrelo manualmente." -ForegroundColor Yellow
-        }
-    }
+    Start-DockerDesktop
 }
 
 Write-Host "[bootstrap] Esperando a que Docker Engine esté disponible..." -ForegroundColor Cyan
-$ready = $false
-for ($i = 0; $i -lt 24; $i++) {
-    try {
-        docker info 1>$null 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            $ready = $true
-            break
-        }
-    } catch {
-        # no-op
-    }
-    Start-Sleep -Seconds 5
-}
+
+$waitResult = Wait-DockerEngine -Attempts 24 -DelaySeconds 5
+$ready = $waitResult.Ready
 
 if (-not $ready) {
-    Write-Host "[WARN] Docker Engine aún no responde." -ForegroundColor Yellow
-    Write-Host "Abre Docker Desktop y espera 'Engine running'." -ForegroundColor Yellow
-    Write-Host "Luego ejecuta: .\scripts\preflight-docker.ps1" -ForegroundColor Yellow
-    exit 3
+    Repair-DockerEngine -LastOutput $waitResult.Output
+    Write-Host "[bootstrap] Reintentando conexión al Docker Engine..." -ForegroundColor Cyan
+    $waitResult2 = Wait-DockerEngine -Attempts 18 -DelaySeconds 5
+    $ready = $waitResult2.Ready
+
+    if (-not $ready) {
+        Write-Host "[WARN] Docker Engine aún no responde." -ForegroundColor Yellow
+        Write-Host "Salida de diagnóstico (resumen):" -ForegroundColor Yellow
+        if ($waitResult2.Output) {
+            $short = $waitResult2.Output
+            if ($short.Length -gt 600) { $short = $short.Substring(0, 600) + "..." }
+            Write-Host $short -ForegroundColor DarkYellow
+        }
+        Write-Host "Siguiente paso: reinicia la VM y vuelve a ejecutar bootstrap." -ForegroundColor Yellow
+        Write-Host "Luego ejecuta: .\scripts\preflight-docker.ps1" -ForegroundColor Yellow
+        exit 3
+    }
 }
 
 Write-Host "[OK] Docker Engine activo. Ejecutando preflight final..." -ForegroundColor Green

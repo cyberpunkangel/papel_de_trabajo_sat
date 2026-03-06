@@ -21,17 +21,44 @@ docker compose version
 
 - Si ambos comandos responden con una versión, todo está listo.
 
-3) Verifica que el motor (engine) esté activo
-- Antes de levantar la app, asegúrate de que Docker Desktop siga abierto.
-- Ejecuta:
+3) Levanta con un solo comando (recomendado)
 
-```bash
-docker info
+Windows (CMD clásico):
+
+```cmd
+scripts\start-docker.cmd
 ```
 
-- Si `docker info` falla, espera unos segundos o reinicia Docker Desktop y vuelve a intentar.
+Windows (PowerShell):
 
-4) Ejecuta bootstrap automático (recomendado)
+```powershell
+.\scripts\start-docker.ps1
+```
+
+Linux/macOS (bash):
+
+```bash
+bash ./scripts/start-docker.sh
+```
+
+- Este comando ejecuta bootstrap + pre-chequeo + `docker compose up -d --build`.
+- Si todo está bien, la app queda en <http://127.0.0.1:8000>.
+
+4) Revisa que todo arrancó bien
+
+```bash
+docker compose logs -f
+```
+
+5) Detener la aplicación
+
+```bash
+docker compose down
+```
+
+### (Opcional) Ejecutar bootstrap/pre-chequeo por separado
+
+Bootstrap:
 
 Windows (PowerShell):
 
@@ -42,7 +69,7 @@ Windows (PowerShell):
 Windows (CMD clásico):
 
 ```cmd
-powershell -ExecutionPolicy Bypass -File .\scripts\bootstrap-docker.ps1
+scripts\bootstrap-docker.cmd
 ```
 
 Linux/macOS (bash):
@@ -53,9 +80,12 @@ bash ./scripts/bootstrap-docker.sh
 
 - El bootstrap intenta preparar el entorno y luego ejecuta el pre-chequeo final.
 - En Windows puede instalar/actualizar WSL y validar distro.
+- En Windows también intenta autorreparar errores del daemon (por ejemplo `docker info` con error 500/pipe).
 - En Linux puede instalar Docker automáticamente en distribuciones comunes.
 
-5) (Opcional) Ejecuta solo pre-chequeo
+No necesitas ejecutar `docker info` manualmente: el bootstrap ya valida que el engine esté listo.
+
+Pre-chequeo:
 
 Windows (PowerShell):
 
@@ -66,7 +96,7 @@ Windows (PowerShell):
 Windows (CMD clásico):
 
 ```cmd
-powershell -ExecutionPolicy Bypass -File .\scripts\preflight-docker.ps1
+scripts\preflight-docker.cmd
 ```
 
 Linux/macOS (bash):
@@ -83,31 +113,9 @@ bash ./scripts/preflight-docker.sh
 .\scripts\preflight-docker.ps1 -AutoInstallUbuntu
 ```
 
-- Si instala Ubuntu, reinicia la VM y ejecuta de nuevo el pre-chequeo.
+- Si instala Ubuntu, reinicia la VM y ejecuta de nuevo el bootstrap/pre-chequeo.
 
-6) Levanta la aplicación
-
-```bash
-docker compose up -d --build
-```
-
-- Este comando descarga lo necesario, construye la imagen y arranca el sistema.
-- La primera vez puede tardar varios minutos.
-
-7) Revisa que todo arrancó bien
-
-```bash
-docker compose logs -f
-```
-
-- Cuando ya no veas errores, abre tu navegador en:
-- <http://127.0.0.1:8000>
-
-8) Detener la aplicación
-
-```bash
-docker compose down
-```
+- Cuando ya no veas errores, abre tu navegador en: <http://127.0.0.1:8000>
 
 Notas importantes:
 - No necesitas instalar Python local para usar Docker.

@@ -47,11 +47,15 @@ if ($distros.Count -eq 0) {
 }
 
 try {
-    docker info 1>$null 2>$null
+    $dockerInfoOutput = (& docker info 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0) { throw "docker info failed" }
 } catch {
     Write-Host "[WARN] Docker Engine no está corriendo." -ForegroundColor Yellow
+    if ($dockerInfoOutput -match '500 Internal Server Error|dockerDesktopLinuxEngine|pipe') {
+        Write-Host "[INFO] Se detectó un problema del daemon (500/pipe)." -ForegroundColor DarkYellow
+    }
     Write-Host "Abre Docker Desktop, espera 'Engine running' y vuelve a intentar." -ForegroundColor Yellow
+    Write-Host "Sugerencia automática: .\scripts\bootstrap-docker.ps1" -ForegroundColor Yellow
     exit 3
 }
 
