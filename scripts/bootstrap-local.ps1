@@ -60,6 +60,56 @@ function Resolve-ExistingPython {
     return $null
 }
 
+function Resolve-PythonFromCommonPaths {
+    $paths = @()
+
+    $userBase = Join-Path $env:LOCALAPPDATA 'Programs\Python'
+    if (Test-Path $userBase) {
+        $paths += Get-ChildItem -Path $userBase -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match '^Python3\d+$' } |
+            ForEach-Object { Join-Path $_.FullName 'python.exe' }
+    }
+
+    $programFilesBase = Join-Path $env:ProgramFiles 'Python'
+    if (Test-Path $programFilesBase) {
+        $paths += Get-ChildItem -Path $programFilesBase -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match '^Python3\d+$' } |
+            ForEach-Object { Join-Path $_.FullName 'python.exe' }
+    }
+
+    $paths = $paths | Where-Object { Test-Path $_ } | Select-Object -Unique
+    if (-not $paths) { return $null }
+
+    $candidates = @()
+    foreach ($p in $paths) {
+        if (Test-PythonVersion -PythonExe $p) {
+            try {
+                $ver = (& $p -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}')" 2>$null).Trim()
+                $candidates += [pscustomobject]@{ Version = [version]$ver; Path = $p }
+            } catch {
+                # no-op
+            }
+        }
+    }
+
+    $best = $candidates | Sort-Object Version -Descending | Select-Object -First 1
+    if ($best) {
+        $pythonDir = Split-Path -Parent $best.Path
+        if (-not ($env:PATH -split ';' | Where-Object { $_ -eq $pythonDir })) {
+            $env:PATH = "$pythonDir;$env:PATH"
+        }
+        $scriptsDir = Join-Path $pythonDir 'Scripts'
+        if (Test-Path $scriptsDir) {
+            if (-not ($env:PATH -split ';' | Where-Object { $_ -eq $scriptsDir })) {
+                $env:PATH = "$scriptsDir;$env:PATH"
+            }
+        }
+        return $best.Path
+    }
+
+    return $null
+}
+
 function Install-PythonIfNeeded {
     param([switch]$AutoInstall)
 
@@ -80,7 +130,10 @@ function Install-PythonIfNeeded {
 
     $after = Resolve-ExistingPython
     if (-not $after) {
-        throw "Python se instaló, pero no fue detectado en esta sesión. Cierra y abre la terminal, luego ejecuta de nuevo el bootstrap."
+        $after = Resolve-PythonFromCommonPaths
+    }
+    if (-not $after) {
+        throw "Python se instaló, pero no fue detectado todavía en esta sesión. Cierra y abre la terminal, luego ejecuta de nuevo el bootstrap."
     }
     return $after
 }
