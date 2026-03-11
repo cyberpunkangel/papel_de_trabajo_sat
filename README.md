@@ -14,9 +14,9 @@ Ejemplo en Windows (CMD):
 cd C:\Users\vboxuser\Downloads\papel_de_trabajo_sat-main\papel_de_trabajo_sat-main
 ```
 
-1) Python 3.10+ (auto-detección)
-- Si ya tienes Python 3.10+ instalado, el bootstrap usa esa instalación (no instala otra).
-- Si no detecta una versión adecuada, intenta instalarla automáticamente.
+1) Python 3.10+
+- Instala Python 3.10 o superior antes de ejecutar el bootstrap.
+- El bootstrap usa el `python` ya instalado en tu sistema.
 
 2) Ejecuta bootstrap (un solo comando)
 

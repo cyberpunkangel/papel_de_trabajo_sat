@@ -1,17 +1,16 @@
 param(
     [switch]$Run,
     [string]$BindHost = "127.0.0.1",
-    [int]$BindPort = 8000,
-    [bool]$AutoInstallPython = $true
+    [int]$BindPort = 8000
 )
 
 $ErrorActionPreference = 'Stop'
 
 function Test-PythonVersion {
-    param([string]$PythonExe)
+    param([string]$PythonCmd)
 
     try {
-        $versionText = (& $PythonExe -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')" 2>$null).Trim()
+        $versionText = (& $PythonCmd -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')" 2>$null).Trim()
         if (-not $versionText) { return $false }
         $parts = $versionText.Split('.')
         if ($parts.Length -lt 2) { return $false }
@@ -23,119 +22,15 @@ function Test-PythonVersion {
     }
 }
 
-function Resolve-ExistingPython {
+function Get-PythonCommand {
     $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
-    if ($pythonCmd -and (Test-PythonVersion -PythonExe $pythonCmd.Source)) {
-        return $pythonCmd.Source
+    if (-not $pythonCmd) {
+        throw "No se encontró el comando 'python'. Instala Python 3.10+ y vuelve a intentar."
     }
-
-    $pyCmd = Get-Command py -ErrorAction SilentlyContinue
-    if ($pyCmd) {
-        $candidates = @()
-        try {
-            $pyList = & $pyCmd.Source -0p 2>$null
-            foreach ($line in $pyList) {
-                if ($line -match '^[\s]*-[Vv]:(?<ver>\d+\.\d+)[^\s]*\s+\*?\s*(?<path>.+python\.exe)\s*$') {
-                    $ver = [version]($Matches['ver'] + '.0')
-                    $path = $Matches['path'].Trim()
-                    if (Test-Path $path) {
-                        $candidates += [pscustomobject]@{ Version = $ver; Path = $path }
-                    }
-                }
-            }
-        } catch {
-            # no-op
-        }
-
-        $valid = $candidates |
-            Where-Object { $_.Version -ge [version]'3.10.0' } |
-            Sort-Object Version -Descending |
-            Select-Object -First 1
-
-        if ($valid -and (Test-PythonVersion -PythonExe $valid.Path)) {
-            return $valid.Path
-        }
+    if (-not (Test-PythonVersion -PythonCmd $pythonCmd.Source)) {
+        throw "La versión de Python detectada no es compatible. Requieres Python 3.10 o superior."
     }
-
-    return $null
-}
-
-function Resolve-PythonFromCommonPaths {
-    $paths = @()
-
-    $userBase = Join-Path $env:LOCALAPPDATA 'Programs\Python'
-    if (Test-Path $userBase) {
-        $paths += Get-ChildItem -Path $userBase -Directory -ErrorAction SilentlyContinue |
-            Where-Object { $_.Name -match '^Python3\d+$' } |
-            ForEach-Object { Join-Path $_.FullName 'python.exe' }
-    }
-
-    $programFilesBase = Join-Path $env:ProgramFiles 'Python'
-    if (Test-Path $programFilesBase) {
-        $paths += Get-ChildItem -Path $programFilesBase -Directory -ErrorAction SilentlyContinue |
-            Where-Object { $_.Name -match '^Python3\d+$' } |
-            ForEach-Object { Join-Path $_.FullName 'python.exe' }
-    }
-
-    $paths = $paths | Where-Object { Test-Path $_ } | Select-Object -Unique
-    if (-not $paths) { return $null }
-
-    $candidates = @()
-    foreach ($p in $paths) {
-        if (Test-PythonVersion -PythonExe $p) {
-            try {
-                $ver = (& $p -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}')" 2>$null).Trim()
-                $candidates += [pscustomobject]@{ Version = [version]$ver; Path = $p }
-            } catch {
-                # no-op
-            }
-        }
-    }
-
-    $best = $candidates | Sort-Object Version -Descending | Select-Object -First 1
-    if ($best) {
-        $pythonDir = Split-Path -Parent $best.Path
-        if (-not ($env:PATH -split ';' | Where-Object { $_ -eq $pythonDir })) {
-            $env:PATH = "$pythonDir;$env:PATH"
-        }
-        $scriptsDir = Join-Path $pythonDir 'Scripts'
-        if (Test-Path $scriptsDir) {
-            if (-not ($env:PATH -split ';' | Where-Object { $_ -eq $scriptsDir })) {
-                $env:PATH = "$scriptsDir;$env:PATH"
-            }
-        }
-        return $best.Path
-    }
-
-    return $null
-}
-
-function Install-PythonIfNeeded {
-    param([switch]$AutoInstall)
-
-    $found = Resolve-ExistingPython
-    if ($found) { return $found }
-
-    if (-not $AutoInstall) {
-        throw "No se encontró Python 3.10+ instalado. Instálalo o ejecuta este script con -AutoInstallPython."
-    }
-
-    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
-    if (-not $wingetCmd) {
-        throw "No se encontró Python 3.10+ y no hay winget para instalar automáticamente. Instálalo manualmente."
-    }
-
-    Write-Host "[bootstrap-local] No se detectó Python 3.10+. Instalando Python 3.11..." -ForegroundColor Yellow
-    & $wingetCmd.Source install -e --id Python.Python.3.11 --accept-package-agreements --accept-source-agreements --silent
-
-    $after = Resolve-ExistingPython
-    if (-not $after) {
-        $after = Resolve-PythonFromCommonPaths
-    }
-    if (-not $after) {
-        throw "Python se instaló, pero no fue detectado todavía en esta sesión. Cierra y abre la terminal, luego ejecuta de nuevo el bootstrap."
-    }
-    return $after
+    return $pythonCmd.Source
 }
 
 Write-Host "[bootstrap-local] Preparando entorno local..." -ForegroundColor Cyan
@@ -146,7 +41,7 @@ $venvPython = Join-Path $venvPath 'Scripts\python.exe'
 
 if (-not (Test-Path $venvPython)) {
     Write-Host "[bootstrap-local] Creando entorno virtual (.venv)..." -ForegroundColor Cyan
-    $pythonExe = Install-PythonIfNeeded -AutoInstall:$AutoInstallPython
+    $pythonExe = Get-PythonCommand
     & $pythonExe -m venv $venvPath
 }
 
