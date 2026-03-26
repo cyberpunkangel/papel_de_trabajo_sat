@@ -50,7 +50,7 @@ def load_contribuyente(config_file: Path) -> dict:
         )
     with config_file.open('r', encoding='utf-8') as handle:
         data = json.load(handle)
-    required = ['nombre', 'rfc', 'curp', 'periodo']
+    required = ['nombre', 'rfc', 'curp']
     missing = [field for field in required if not data.get(field)]
     if missing:
         raise ValueError(f'Faltan datos del contribuyente: {", ".join(missing)}')
@@ -77,7 +77,11 @@ def main() -> int:
     logger = None
     try:
         contribuyente = load_contribuyente(args.config_file)
-        periodo = args.periodo or contribuyente['periodo']
+        periodo = args.periodo or contribuyente.get('periodo')
+        if not periodo:
+            raise ValueError(
+                'Debes indicar el periodo fiscal al generar el reporte.'
+            )
 
         descargas_dir = Path(args.descargas_dir)
         if not descargas_dir.exists():
