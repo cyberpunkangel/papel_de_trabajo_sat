@@ -33,10 +33,40 @@ OTROS_CFDI_DIR_NAMES = [
 ]
 
 def resolve_data_root(periodo: str | int, base_dir: Path | None = None) -> Path:
-    """Devuelve la carpeta de trabajo para el periodo solicitado."""
-    periodo = str(periodo)
+    """Devuelve la carpeta de trabajo para el periodo solicitado.
+
+    Reglas:
+    - Si existe una carpeta exacta ``descargas/<periodo>``, se usa esa.
+    - Si no existe, pero hay exactamente una carpeta hija cuyo nombre inicia con
+      el ejercicio (por ejemplo ``2023_algo``), se usa esa.
+    - Si no hay coincidencias o hay varias coincidencias ambiguas, se lanza un
+      error para evitar mezclar XML de otro ejercicio.
+    """
+    periodo = str(periodo).strip()
     base = Path(base_dir) if base_dir is not None else DESCARGAS_DIR
+    if not base.exists():
+        raise FileNotFoundError(f'La carpeta de descargas no existe: {base}')
+
     candidate = base / periodo
     if candidate.exists():
         return candidate
-    return base
+
+    matching_dirs = sorted(
+        child for child in base.iterdir()
+        if child.is_dir() and child.name != 'COMPARAR' and child.name.startswith(periodo)
+    )
+
+    if len(matching_dirs) == 1:
+        return matching_dirs[0]
+
+    if not matching_dirs:
+        raise FileNotFoundError(
+            f'No se encontraron descargas para el ejercicio {periodo} en {base}.'
+        )
+
+    matches = ', '.join(child.name for child in matching_dirs)
+    raise ValueError(
+        'Se encontraron varias carpetas de descargas para el ejercicio '
+        f'{periodo}: {matches}. Organiza las descargas o selecciona un periodo '
+        'con una carpeta única antes de generar el reporte.'
+    )
