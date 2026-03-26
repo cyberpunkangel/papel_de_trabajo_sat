@@ -524,8 +524,9 @@
                     <div class="info-box" style="margin-bottom: 16px;">
                         <p><strong>&#8505;&#65039; Requisitos para listar un ejercicio</strong></p>
                         <ul style="font-size: 0.9em; margin: 8px 0 0 18px; line-height: 1.6;">
-                            <li>XML vigentes en: <strong>CONSTANCIAS_DE_RETENCIONES</strong>, <strong>OTROS_CFDI</strong> y <strong>RECIBOS_DE_NOMINA</strong>.</li>
                             <li>Papel de trabajo del mismo ejercicio en la carpeta de reportes.</li>
+                            <li>XML vigentes en al menos una de estas carpetas: <strong>CONSTANCIAS_DE_RETENCIONES</strong>, <strong>OTROS_CFDI</strong> o <strong>RECIBOS_DE_NOMINA</strong>.</li>
+                            <li>Se generan paquetes solo para las carpetas que sí tengan XML vigentes aplicables.</li>
                             <li>Si un ZIP rebasa 4 MB, se divide automáticamente en partes (<strong>_P1</strong>, <strong>_P2</strong>, etc.).</li>
                         </ul>
                     </div>
@@ -535,7 +536,7 @@
                         <select id="packages-periodo" name="packages_periodo">
                             <option value="">Cargando ejercicios elegibles...</option>
                         </select>
-                        <small class="hint">Solo aparecen ejercicios con XML vigentes en las 3 carpetas y papel de trabajo del mismo año.</small>
+                        <small class="hint">Solo aparecen ejercicios con papel de trabajo y XML vigentes disponibles en al menos una carpeta del mismo año.</small>
                     </div>
 
                     <div id="packages-status-box" class="info-box" style="background-color: rgba(13, 110, 253, 0.10); border-left: 4px solid #0d6efd;">

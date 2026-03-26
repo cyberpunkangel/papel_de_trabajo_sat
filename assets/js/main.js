@@ -687,6 +687,29 @@ function setGeneratePackagesButtonEnabled(enabled, loadingText = '') {
         : (loadingText || '⏳ Generando...');
 }
 
+function buildPackagePeriodStatus(periodData) {
+    if (!periodData) {
+        return 'Selecciona un ejercicio y genera los ZIPs disponibles (límite: 4 MB por archivo).';
+    }
+
+    const availableFolders = Array.isArray(periodData.available_folders) ? periodData.available_folders : [];
+    const missingFolders = Array.isArray(periodData.missing_folders) ? periodData.missing_folders : [];
+    const emptyFolders = Array.isArray(periodData.empty_folders) ? periodData.empty_folders : [];
+    const details = [];
+
+    if (availableFolders.length) {
+        details.push(`Carpetas listas: ${availableFolders.join(', ')}.`);
+    }
+    if (missingFolders.length) {
+        details.push(`Sin carpeta VIGENTES: ${missingFolders.join(', ')}.`);
+    }
+    if (emptyFolders.length) {
+        details.push(`Sin XML vigentes: ${emptyFolders.join(', ')}.`);
+    }
+
+    return details.join(' ') || 'Selecciona un ejercicio y genera los ZIPs disponibles (límite: 4 MB por archivo).';
+}
+
 async function loadEligiblePackagePeriods() {
     const periodSelect = document.getElementById('packages-periodo');
     const resultsBox = document.getElementById('packages-results');
@@ -720,7 +743,7 @@ async function loadEligiblePackagePeriods() {
             periodSelect.disabled = true;
             setGeneratePackagesButtonEnabled(false);
             setPackagesStatusMessage(
-                'No hay ejercicios elegibles. Verifica XML vigentes en las 3 carpetas y papel de trabajo del mismo año.',
+                'No hay ejercicios elegibles. Verifica que exista papel de trabajo y XML vigentes en al menos una carpeta del mismo año.',
                 'error'
             );
             return;
@@ -729,13 +752,18 @@ async function loadEligiblePackagePeriods() {
         periods.forEach(item => {
             const option = document.createElement('option');
             option.value = item.period;
-            option.textContent = `Ejercicio ${item.period} (${item.total_xml} XML)`;
+            const availableFolders = Array.isArray(item.available_folders) ? item.available_folders.length : 0;
+            option.textContent = `Ejercicio ${item.period} (${item.total_xml} XML, ${availableFolders} carpeta(s))`;
             periodSelect.appendChild(option);
         });
 
         periodSelect.disabled = false;
         setGeneratePackagesButtonEnabled(true);
-        setPackagesStatusMessage(`Selecciona un ejercicio y genera los ZIPs (límite: 4 MB por archivo).`);
+        periodSelect.onchange = () => {
+            const selected = periods.find(item => item.period === periodSelect.value) || periods[0];
+            setPackagesStatusMessage(buildPackagePeriodStatus(selected));
+        };
+        setPackagesStatusMessage(buildPackagePeriodStatus(periods[0]));
     } catch (error) {
         console.error('Error loading package periods:', error);
         periodSelect.innerHTML = '<option value="">Error al cargar ejercicios</option>';

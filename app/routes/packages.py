@@ -251,7 +251,9 @@ def _collect_eligible_periods() -> List[Dict[str, object]]:
         deducciones_uuids = _extract_deducciones_uuids(report_file)
 
         folder_counts: Dict[str, int] = {}
-        all_have_xml = True
+        available_folders: List[str] = []
+        missing_folders: List[str] = []
+        empty_folders: List[str] = []
         total_xml = 0
 
         for folder_name in SOURCE_FOLDERS:
@@ -265,10 +267,15 @@ def _collect_eligible_periods() -> List[Dict[str, object]]:
             folder_counts[folder_name] = selected_count
             total_xml += selected_count
 
-            if raw_count == 0:
-                all_have_xml = False
+            vigentes_dir = os.path.join(DESCARGAS_DIR, period, folder_name, 'VIGENTES')
+            if not os.path.isdir(vigentes_dir):
+                missing_folders.append(folder_name)
+            elif raw_count == 0:
+                empty_folders.append(folder_name)
+            elif selected_count > 0:
+                available_folders.append(folder_name)
 
-        if not all_have_xml:
+        if total_xml <= 0:
             continue
 
         results.append(
@@ -278,6 +285,9 @@ def _collect_eligible_periods() -> List[Dict[str, object]]:
                 'xml_counts': folder_counts,
                 'total_xml': total_xml,
                 'deducciones_uuid_count': len(deducciones_uuids),
+                'available_folders': available_folders,
+                'missing_folders': missing_folders,
+                'empty_folders': empty_folders,
             }
         )
 
@@ -314,7 +324,7 @@ async def generate_sat_packages(periodo: str = Form('')):
                 'success': False,
                 'message': (
                     'El ejercicio seleccionado no es elegible. '
-                    'Debe tener XML vigentes en las 3 carpetas y un papel de trabajo del mismo ejercicio.'
+                    'Debe tener un papel de trabajo y XML vigentes aplicables en al menos una carpeta del mismo ejercicio.'
                 ),
             },
         )
